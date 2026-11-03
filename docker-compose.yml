@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: aegis_postgres
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis_password
+      POSTGRES_DB: aegis_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis -d aegis_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: aegis_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: aegis_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@aegis.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: aegis_redis_commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
